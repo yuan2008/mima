@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日滚动密码生成器</title>
+    <!-- 引入可靠的MD5库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header::after {
+            content: "";
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            margin: 0 auto;
+            border-radius: 2px;
+        }
+        
+        .password-display {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            border: 2px dashed #e0e0e0;
+        }
+        
+        .date {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .password {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2575fc;
+            letter-spacing: 3px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .copy-btn {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(106, 17, 203, 0.5);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .copy-btn i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        .info-box {
+            background: #e8f4ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 25px;
+            text-align: left;
+            border-left: 4px solid #2575fc;
+        }
+        
+        .info-box h3 {
+            color: #2575fc;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            color: #777;
+            font-size: 14px;
+        }
+        
+        .success-message {
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .date-selector {
+            margin: 20px 0;
+        }
+        
+        .date-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .date-input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 250px;
+        }
+        
+        .date-input:focus {
+            border-color: #6a11cb;
+            outline: none;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(to right, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(40, 167, 69, 0.4);
+        }
+        
+        .warning {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>每日滚动密码生成器</h1>
+        </div>
+        
+        <div class="date-selector">
+            <label for="date-input">选择日期 (可选):</label>
+            <input type="date" id="date-input" class="date-input">
+            <button class="generate-btn" id="generate-btn">
+                <i class="fas fa-sync-alt"></i> 生成密码
+            </button>
+            <div class="warning" id="warning">日期格式错误！请使用YYYY-MM-DD格式</div>
+        </div>
+        
+        <div class="password-display">
+            <div class="date">生成日期: <span id="date-display">--</span></div>
+            <div class="password" id="password-display">--------</div>
+            <div class="success-message" id="success-message">密码已复制到剪贴板！</div>
+        </div>
+        
+        <button class="copy-btn" id="copy-btn">
+            <i class="fas fa-copy"></i> 复制密码
+        </button>
+        
+        <div class="info-box">
+            <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+            <p>每日滚动密码基于日期和固定密钥生成，仅当日有效。请确保与抢单程序中的密钥保持一致。</p>
+            
+        </div>
+        
+        <div class="footer">
+            <p>基于Python密码生成器转换 - 修正版</p>
+        </div>
+    </div>
+
+    <script>
+        // 使用可靠的MD5库生成密码
+        function generateDailyPassword(targetDate = null) {
+            const FIXED_SECRET = "陈文龙"; // 与Python代码中相同的固定密钥
+            
+            // 处理日期
+            let currentDate;
+            if (!targetDate) {
+                const now = new Date();
+                currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            } else {
+                // 验证日期格式
+                if (!isValidDate(targetDate)) {
+                    document.getElementById('warning').style.display = 'block';
+                    return null;
+                }
+                currentDate = targetDate;
+                document.getElementById('warning').style.display = 'none';
+            }
+            
+            // 生成密码：使用MD5库确保与Python一致
+            const rawStr = `${currentDate}_${FIXED_SECRET}`;
+            const md5Hash = md5(rawStr);
+            const dailyPassword = md5Hash.substring(0, 8).toUpperCase();
+            
+            return {
+                date: currentDate,
+                password: dailyPassword
+            };
+        }
+
+        // 验证日期格式
+        function isValidDate(dateString) {
+            const regex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!regex.test(dateString)) return false;
+            
+            const date = new Date(dateString);
+            return date instanceof Date && !isNaN(date);
+        }
+
+        // 更新显示
+        function updateDisplay(date = null) {
+            const result = generateDailyPassword(date);
+            if (result) {
+                document.getElementById('date-display').textContent = result.date;
+                document.getElementById('password-display').textContent = result.password;
+            }
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard() {
+            const password = document.getElementById('password-display').textContent;
+            
+            if (password === '--------') {
+                alert('请先生成密码！');
+                return;
+            }
+            
+            // 使用现代剪贴板API
+            navigator.clipboard.writeText(password).then(() => {
+                // 显示成功消息
+                const successMsg = document.getElementById('success-message');
+                successMsg.style.opacity = 1;
+                
+                // 2秒后隐藏消息
+                setTimeout(() => {
+                    successMsg.style.opacity = 0;
+                }, 2000);
+            }).catch(err => {
+                // 备用方法：使用传统方法
+                const textArea = document.createElement('textarea');
+                textArea.value = password;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // 显示成功消息
+                const successMsg = document.getElementById('success-message');
+                successMsg.style.opacity = 1;
+                
+                // 2秒后隐藏消息
+                setTimeout(() => {
+                    successMsg.style.opacity = 0;
+                }, 2000);
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始生成密码
+            updateDisplay();
+            
+            // 绑定复制按钮事件
+            document.getElementById('copy-btn').addEventListener('click', copyToClipboard);
+            
+            // 绑定生成按钮事件
+            document.getElementById('generate-btn').addEventListener('click', function() {
+                const dateInput = document.getElementById('date-input').value;
+                updateDisplay(dateInput || null);
+            });
+            
+            // 绑定日期选择事件
+            document.getElementById('date-input').addEventListener('change', function() {
+                updateDisplay(this.value || null);
+            });
+            
+            // 设置日期输入框的最大值为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-input').setAttribute('max', today);
+        });
+    </script>
+</body>
+</html>
